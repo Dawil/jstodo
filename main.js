@@ -1,24 +1,42 @@
 'use strict';
 
 var App = makeComponent({
+	constructor: function() {
+		this.attrs = {
+			search: this.node.querySelector('input#search'),
+			list: this.node.querySelector('ul#list')
+		};
+	},
 	prototype: {
 		render: function() {
-			this.attrs = this.attrs || {};
-			this.attrs.spam = this.attrs.spam || this.node.querySelector('#spam');
-			this.attrs.spam.innerHTML =
-				'<ul>' +
-				this.state.map(function(item) {
-					return '<li>' + item + '</li>';
-				}).join('\n') +
-				'</ul>';
+			sync(this.attrs.list, this.state, function(li, text) {
+				if (!li) {
+					li = document.createElement('li');
+					var span = document.createElement('span');
+					span.innerText = 'X';
+					span.classList.add('kill-todo');
+					li.appendChild(span);
+					li.appendChild(document.createElement('span'));
+				}
+				li.children[1].innerText = text;
+				return li;
+			});
 			return this;
 		}
 	},
 	events: {
-		'click:button': function(event) {
-			console.log('Clicked');
-			console.log(this);
-			this.state.push('You clicked!');
+		'keypress:input#search': function(event) {
+			if (event.code == 'Enter') {
+				var todo = event.target.value;
+				event.target.value = '';
+				this.state.push(todo);
+				this.render();
+			}
+		},
+		'click:span.kill-todo': function(event) {
+			var todo = event.target.parentElement.children[1].innerText;
+			var index = this.state.indexOf(todo);
+			this.state.splice(index, 1);
 			this.render();
 		}
 	}

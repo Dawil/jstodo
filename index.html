@@ -1,7 +1,17 @@
 <body>
+	<style>
+		span.kill-todo:hover {
+			cursor: pointer;
+		}
+		span.kill-todo {
+			font-family: 'Helvetica';
+			font-weight: bold;
+			padding: 0 1em;
+		}
+	</style>
 	<div id=app>
-		<button>Click me!</button>
-		<div id=spam></div>
+		<input id=search>
+		<ul id=list></ul>
 	</div>
 	<script src="utils.js"></script>
 	<script src="main.js"></script>

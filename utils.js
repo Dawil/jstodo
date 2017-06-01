@@ -22,7 +22,8 @@ function makeComponent(options) {
 	return Component;
 }
 
-function sync(parent, children, data, linker) {
+function sync(node, data, linker) {
+	var children = node.children;
 	for (var i = 0; i < Math.max(children.length, data.length); i++) {
 		var oldChild = children[i];
 		var newChild;
@@ -30,9 +31,9 @@ function sync(parent, children, data, linker) {
 			newChild = linker(children[i], data[i]);
 		}
 		if (oldChild && newChild) {
-			parent.replaceChild(newChild, oldChild);
+			node.replaceChild(newChild, oldChild);
 		} else if (!oldChild && newChild) {
-			parent.appendChild(newChild);
+			node.appendChild(newChild);
 		} else if (oldChild && !newChild) {
 			oldChild.remove();
 		}
