@@ -1,10 +1,8 @@
 'use strict';
 
-function makeComponent(template, options) {
-	function Component(state) {
-		this.rootNode = document.createElement(template.title);
-		this.rootNode.controller = this;
-		this.shadowRoot = this.rootNode.createShadowRoot();
+function makeComponent(options) {
+	function Component(node, state) {
+		this.node = node;
 		var self = this;
 		Object.keys(options.events||{}).map(function(key){
 			var parts = key.split(':');
@@ -15,14 +13,10 @@ function makeComponent(template, options) {
 					options.events[key].apply(self, [event]);
 				}
 			};
-			self.rootNode.addEventListener(eventName, handler);
-			self.shadowRoot.addEventListener(eventName, handler);
+			self.node.addEventListener(eventName, handler);
 		});
-		this.dom = document.importNode(template.content, true);
-		this.shadowRoot.appendChild(this.dom);
 		this.state = state;
 		options.constructor.apply(this, []);
-		this.render();
 	};
 	Component.prototype = options.prototype || {};
 	return Component;
