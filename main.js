@@ -90,22 +90,36 @@ var App = makeComponent({
 			list: this.node.querySelector('ul#list'),
 			children: new Map()
 		};
+		var self = this;
+		this.handlers = {
+			'keypress': function(event) {
+				if (event.code == 'Enter') {
+					var todo = event.target.value;
+					event.target.value = '';
+					self.state.push(todo);
+					self.render();
+				}
+			}
+		};
 	},
 	prototype: {
 		render: function() {
-			var self = this;
-			sync(this.attrs.list, this.state, function(li, text) {
-				if (text === undefined) {
-					self.attrs.children.delete(li);
-					return;
-				}
-				if (!li) {
-					li = makeItemElement();
-					self.attrs.children.set(li, new Item(li));
-				}
-				self.attrs.children.get(li).render();
-				return li;
-			});
+			var newVdom =
+				h('div', {id: 'app'}, [
+					h('input', {
+						id: 'search',
+						onkeypress: this.handlers['keypress']
+					}, []),
+					h('ul', {id: 'list'}, this.state.map(function(text) {
+							return h('li', {}, [
+								h('span', {class: 'kill-todo'}, ['X']),
+								h('span', {}, [text])
+							]);
+						})
+					)
+				]);
+			this.node = patch(this.node, this.vdom, newVdom);
+			this.vdom = newVdom;
 			return this;
 		}
 	},
