@@ -1,5 +1,6 @@
 'use strict';
 
+/*
 var Item = makeComponent({
 	constructor: function() {
 		this.attrs = {
@@ -26,6 +27,51 @@ var Item = makeComponent({
 		}
 	}
 });
+*/
+function NodeMixin(func) {
+	return function(node) {
+		this.node = node;
+		func.call(this);
+	};
+}
+function EventHandlerMixin(func, events) {
+	return function() {
+		var self = this;
+		Object.keys(this.events||{}).map(function(key) {
+			var parts = key.split(':');
+			var eventName = parts[0];
+			var selector = parts.slice(1).join(':');
+			var handler = function(event) {
+				if (!selector || event.target.matches(selector)) {
+					events[key].apply(self, [event]);
+				}
+			};
+			self.node.addEventListener(eventName, handler);
+		});
+		func.call(this);
+	};
+}
+var Item = NodeMixin(EventHandlerMixin(function() {
+	this.attrs = {
+		kill: this.node.querySelectorAll('span')[0],
+		text: this.node.querySelectorAll('span')[1]
+	};
+}, {
+	'updateText': function(event) {
+		this.state = event.detail;
+		this.render();
+	},
+	'click:.kill-todo': function(event) {
+		event.stopPropagation();
+		this.node.dispatchEvent(new CustomEvent('killTodo', {
+			bubbles: true,
+			detail: this.state
+		}));
+	}
+}));
+Item.prototype.render = function() {
+	this.attrs.text.innerText = this.state;
+}
 
 function makeItemElement() {
 	var li = document.createElement('li');
@@ -41,19 +87,23 @@ var App = makeComponent({
 	constructor: function() {
 		this.attrs = {
 			search: this.node.querySelector('input#search'),
-			list: this.node.querySelector('ul#list')
+			list: this.node.querySelector('ul#list'),
+			children: new Map()
 		};
 	},
 	prototype: {
 		render: function() {
+			var self = this;
 			sync(this.attrs.list, this.state, function(li, text) {
+				if (text === undefined) {
+					self.attrs.children.delete(li);
+					return;
+				}
 				if (!li) {
 					li = makeItemElement();
-					new Item(li);
+					self.attrs.children.set(li, new Item(li));
 				}
-				li.dispatchEvent(new CustomEvent('updateText', {
-					detail: text
-				}));
+				self.attrs.children.get(li).render();
 				return li;
 			});
 			return this;

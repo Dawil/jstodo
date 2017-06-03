@@ -26,10 +26,7 @@ function sync(node, data, linker) {
 	var children = node.children;
 	for (var i = 0; i < Math.max(children.length, data.length); i++) {
 		var oldChild = children[i];
-		var newChild;
-		if (i < data.length) {
-			newChild = linker(children[i], data[i]);
-		}
+		var newChild = linker(oldChild, data[i]);
 		if (oldChild && newChild) {
 			node.replaceChild(newChild, oldChild);
 		} else if (!oldChild && newChild) {
