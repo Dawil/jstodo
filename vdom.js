@@ -19,48 +19,58 @@ function h(tag, attrs, children) {
 	};
 }
 
-function patch(node, a, b) {
-	if (typeof b == 'string' && a !== b) {
-		var newChild = createElement(b)
-		node.replaceWith(newChild);
-		return newChild;
-	}
-	console.log(node, a, b)
-	if (!a || a.tag != b.tag) {
-		var newChild = createElement(b);
-		node.parentElement.replaceChild(newChild, node);
-		return newChild;
-	}
+function patch(parentNode, aNodes, bNodes) {
+	for (var i = 0; i < Math.max(aNodes.length, bNodes.length); i++) {
+		var a = aNodes[i], b = bNodes[i], node = parentNode.childNodes[i];
+		console.log(node, a, b)
 
-	for (var attr in a.attrs) {
-		var eventName = getAttrEventName(attr);
-		if (!(attr in b.attrs)) {
-			eventName
-				? node.removeEventListener(eventName, a.attrs[attr])
-				: node.removeAttribute(attr);
-		} else if (a.attrs[attr] !== b.attrs[attr]) {
-			eventName
-				? ( node.removeEventListener(eventName, a.attrs[attr])
-					&& node.addEventListener(eventName, b.attrs[attr]) )
-				: node.setAttribute(attr, b.attrs[attr]);
+		/* Create new element */
+		if (!a) {
+			var newChild = createElement(b);
+			parentNode.appendChild(newChild);
+			continue;
 		}
-	}
-	for (var attr in b.attrs) {
-		if (!(attr in a.attrs)) {
-			node.setAttribute(attr, b.attrs[attr]);
+		if (typeof b == 'string') {
+			if (a !== b) {
+				var newChild = createElement(b);
+				node.textContent = b;
+			}
+			continue;
 		}
-	}
+		if (!b) {
+			parentNode.removeChild(node);
+			continue;
+		}
+		if (a.tag != b.tag) {
+			var newChild = createElement(b);
+			parentNode.replaceChild(newChild, node);
+			continue;
+		}
+		/* ****************** */
 
-	for (var i = 0; i < Math.max(a.children.length, b.children.length); i++) {
-		if (!node.childNodes[i] && b.children[i]) {
-			node.appendChild(createElement(b.children[i]));
-		} else if (a.children[i] && !b.children[i]) {
-			node.parentElement.removeChild(a.children[i]);
-		} else {
-			patch(node.childNodes[i], a.children[i], b.children[i]);
+		/* Synchronize attributes */
+		for (var attr in a.attrs) {
+			var eventName = getAttrEventName(attr);
+			if (!(attr in b.attrs)) {
+				eventName
+					? node.removeEventListener(eventName, a.attrs[attr])
+					: node.removeAttribute(attr);
+			} else if (a.attrs[attr] !== b.attrs[attr]) {
+				eventName
+					? ( node.removeEventListener(eventName, a.attrs[attr])
+						&& node.addEventListener(eventName, b.attrs[attr]) )
+					: node.setAttribute(attr, b.attrs[attr]);
+			}
 		}
+		for (var attr in b.attrs) {
+			if (!(attr in a.attrs)) {
+				node.setAttribute(attr, b.attrs[attr]);
+			}
+		}
+		/* ********************** */
+
+		patch(node, a.children, b.children);
 	}
-	return node;
 }
 
 function getAttrEventName(attr) {

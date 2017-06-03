@@ -91,39 +91,46 @@ var App = makeComponent({
 			children: new Map()
 		};
 		var self = this;
-		this.handlers = {
-			'keypress': function(event) {
-				if (event.code == 'Enter') {
-					var todo = event.target.value;
-					event.target.value = '';
-					self.state.push(todo);
-					self.render();
-				}
+		this.onKeypress = function(event) {
+			if (event.code == 'Enter') {
+				var todo = event.target.value;
+				event.target.value = '';
+				self.state.push(todo);
+				self.render();
 			}
+		};
+		this.killTodo = function(event) {
+			var todo = event.target.parentNode.children[1].innerText;
+			var index = self.state.indexOf(todo);
+			self.state.splice(index, 1);
+			self.render();
 		};
 	},
 	prototype: {
 		render: function() {
-			var newVdom =
-				h('div', {id: 'app'}, [
-					h('input', {
-						id: 'search',
-						onkeypress: this.handlers['keypress']
-					}, []),
-					h('ul', {id: 'list'}, this.state.map(function(text) {
-							return h('li', {}, [
-								h('span', {class: 'kill-todo'}, ['X']),
-								h('span', {}, [text])
-							]);
-						})
-					)
-				]);
-			this.node = patch(this.node, this.vdom, newVdom);
+			var newVdom = [
+				h('input', {
+					id: 'search',
+					onkeypress: this.onKeypress
+				}, []),
+				h('ul', {id: 'list'}, this.state.map(function(text) {
+						return h('li', {}, [
+							h('span', {
+								class: 'kill-todo',
+								onclick: this.killTodo
+							}, ['X']),
+							h('span', {}, [text])
+						]);
+					}, this)
+				)
+			];
+			patch(this.node, this.vdom || [], newVdom);
 			this.vdom = newVdom;
 			return this;
 		}
 	},
 	events: {
+		/*
 		'keypress:input#search': function(event) {
 			if (event.code == 'Enter') {
 				var todo = event.target.value;
@@ -138,6 +145,7 @@ var App = makeComponent({
 			this.state.splice(index, 1);
 			this.render();
 		}
+		*/
 	}
 });
 
