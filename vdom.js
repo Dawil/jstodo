@@ -1,16 +1,3 @@
-var dom =
-	h('div', {}, [
-		h('p', {class: 'foo'}, ['hello world'])
-	]
-);
-
-var dom2 =
-	h('div', {}, [
-		h('p', {class: 'bar'}, ['goodbye world']),
-		h('p', {}, ['waddup'])
-	]
-);
-
 function h(tag, attrs, children) {
 	return {
 		tag: tag,
@@ -22,9 +9,8 @@ function h(tag, attrs, children) {
 function patch(parentNode, aNodes, bNodes) {
 	for (var i = 0; i < Math.max(aNodes.length, bNodes.length); i++) {
 		var a = aNodes[i], b = bNodes[i], node = parentNode.childNodes[i];
-		console.log(node, a, b)
 
-		/* Create new element */
+		/* Edge Cases */
 		if (!a) {
 			var newChild = createElement(b);
 			parentNode.appendChild(newChild);
@@ -32,8 +18,10 @@ function patch(parentNode, aNodes, bNodes) {
 		}
 		if (typeof b == 'string') {
 			if (a !== b) {
+				var fragment = document.createDocumentFragment();
 				var newChild = createElement(b);
-				node.textContent = b;
+				fragment.appendChild(newChild);
+				parentNode.replaceChild(fragment, node);
 			}
 			continue;
 		}
@@ -94,3 +82,18 @@ function createElement(dom) {
 	}
 	return element;
 }
+
+var dom = [
+	h('p', {class: 'foo'}, ['hello world']),
+	h('p', {}, ['waddup'])
+];
+
+var dom2 = [
+	h('p', {class: 'bar'}, ['goodbye world']),
+	'foo bar'
+];
+
+var div = document.createElement('div');
+
+patch(div, [], dom);
+patch(div, dom, dom2);
