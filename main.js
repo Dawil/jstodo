@@ -14,18 +14,19 @@ function getRoot(node) {
 	}
 }
 
-var Todo = function() {};
-Todo.prototype.render = function(state) {
-	return [h('li', {'data-index': state[1]}, [
-		h('span', {
-			class: 'kill-todo',
-			onclick: Todo.click
-		}, ['X']),
-		h('span', {}, [state[0]])
-	])];
-};
-Todo.prototype.click = function(event) {
-	fire(this, 'killTodo', this.parentElement.dataset.index);
+var Todo = {
+	render: function(state) {
+		return [h('li', {'data-index': state[1]}, [
+			h('span', {
+				class: 'kill-todo',
+				onclick: Todo.click
+			}, ['X']),
+			h('span', {}, [state[0]])
+		])];
+	},
+	click: function(event) {
+		fire(this, 'killTodo', this.parentElement.dataset.index);
+	}
 };
 
 var App = function(dom, state) {
@@ -50,21 +51,20 @@ var App = function(dom, state) {
 		patch(dom, vdom, newVdom);
 		vdom = newVdom;
 	};
+	this.render = function(state) {
+		return [
+			h('input', {
+				id: 'search',
+				onkeypress: self.keypress
+			}, []),
+			h('ul', {id: 'list', onkillTodo: self.killTodo},
+				state.map(function(text, index) {
+					return Todo.render(arguments)[0];
+				})
+			)
+		];
+	};
 	this.applyPatch();
-};
-App.prototype.render = function(state) {
-	return [
-		h('input', {
-			id: 'search',
-			onkeypress: App.keypress
-		}, []),
-		h('ul', {id: 'list', onkillTodo: App.killTodo},
-			state.map(function(text, index) {
-				return Todo.render(arguments)[0];
-			})
-		)
-	];
-};
 };
 
 document.addEventListener('DOMContentLoaded', function(event) {
