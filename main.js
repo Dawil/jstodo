@@ -7,13 +7,6 @@ function fire(node, eventType, data) {
 	}));
 }
 
-function getRoot(node) {
-	while (true) {
-		if (node.state !== undefined) return node;
-		node = node.parentElement;
-	}
-}
-
 var Todo = {
 	render: function(state) {
 		return [h('li', {'data-index': state[1]}, [
