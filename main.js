@@ -7,13 +7,6 @@ function fire(node, eventType, data) {
 	}));
 }
 
-function applyPatch(dom, render, state) {
-	dom.state = dom.state || state;
-	var newVdom = render(dom.state);
-	patch(dom, dom.vdom || [], newVdom);
-	dom.vdom = newVdom;
-}
-
 function getRoot(node) {
 	while (true) {
 		if (node.state !== undefined) return node;
@@ -21,55 +14,62 @@ function getRoot(node) {
 	}
 }
 
-var Todo = {
-	click: function(event) {
-		fire(this, 'killTodo', this.parentElement.dataset.index);
-	},
-	render: function(state) {
-		return h('li', {'data-index': state[1]}, [
-			h('span', {
-				class: 'kill-todo',
-				onclick: Todo.click
-			}, ['X']),
-			h('span', {}, [state[0]])
-		]);
-	}
+var Todo = function() {};
+Todo.prototype.render = function(state) {
+	return [h('li', {'data-index': state[1]}, [
+		h('span', {
+			class: 'kill-todo',
+			onclick: Todo.click
+		}, ['X']),
+		h('span', {}, [state[0]])
+	])];
+};
+Todo.prototype.click = function(event) {
+	fire(this, 'killTodo', this.parentElement.dataset.index);
 };
 
-var App = {
-	keypress: function(event) {
+var App = function(dom, state) {
+	var self = this, vdom = [];
+	this.keypress = function(event) {
 		if (event.code == 'Enter') {
 			var todo = event.target.value;
 			event.target.value = '';
-			var root = getRoot(this);
-			root.state.push(todo);
+			state.push(todo);
 
-			applyPatch(root, App.render);
+			self.applyPatch()
 		}
-	},
-	killTodo: function(event) {
+	};
+	this.killTodo = function(event) {
 		var index = event.detail;
-		var root = getRoot(this);
-		root.state.splice(index, 1);
+		state.splice(index, 1);
 
-		applyPatch(root, App.render);
-	},
-	render: function(state) {
-		return [
-			h('input', {
-				id: 'search',
-				onkeypress: App.keypress
-			}, []),
-			h('ul', {id: 'list', onkillTodo: App.killTodo},
-				state.map(function(text, index) {
-					return Todo.render(arguments);
-				})
-			)
-		];
-	}
+		self.applyPatch()
+	};
+	this.applyPatch = function() {
+		var newVdom = self.render(state);
+		patch(dom, vdom, newVdom);
+		vdom = newVdom;
+	};
+	this.applyPatch();
+};
+App.prototype.render = function(state) {
+	return [
+		h('input', {
+			id: 'search',
+			onkeypress: App.keypress
+		}, []),
+		h('ul', {id: 'list', onkillTodo: App.killTodo},
+			state.map(function(text, index) {
+				return Todo.render(arguments)[0];
+			})
+		)
+	];
+};
 };
 
 document.addEventListener('DOMContentLoaded', function(event) {
-	var app = document.querySelector('#app');
-	applyPatch(app, App.render, []);
+	var app = new App(
+		document.querySelector('#app'),
+		[]
+	);
 });
