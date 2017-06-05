@@ -1,115 +1,75 @@
 'use strict';
 
-/*
-var Item = makeComponent({
-	constructor: function() {
-		this.attrs = {
-			kill: this.node.querySelectorAll('span')[0],
-			text: this.node.querySelectorAll('span')[1]
-		};
-	},
-	prototype: {
-		render: function() {
-			this.attrs.text.innerText = this.state;
-		}
-	},
-	events: {
-		'updateText': function(event) {
-			this.state = event.detail;
-			this.render();
-		},
-		'click:.kill-todo': function(event) {
-			event.stopPropagation();
-			this.node.dispatchEvent(new CustomEvent('killTodo', {
-				bubbles: true,
-				detail: this.state
-			}));
-		}
+function fire(node, eventType, data) {
+	node.dispatchEvent(new CustomEvent(eventType, {
+		bubbles: true,
+		detail: data
+	}));
+}
+
+function applyPatch(dom, render, state) {
+	dom.state = dom.state || state;
+	var newVdom = render(dom.state);
+	patch(dom, dom.vdom || [], newVdom);
+	dom.vdom = newVdom;
+}
+
+function getRoot(node) {
+	while (true) {
+		if (node.state !== undefined) return node;
+		node = node.parentElement;
 	}
-});
-*/
-function NodeMixin(func) {
-	return function() {
-		this.node = arguments[0];
-		func.apply(this, [].slice.call(arguments, 1));
-	};
 }
 
-var Item = NodeMixin(function() {
-	this.attrs = {
-		kill: this.node.querySelectorAll('span')[0],
-		text: this.node.querySelectorAll('span')[1]
-	};
-	var self = this;
-	this.updateText = function(event) {
-		self.state = event.detail;
-		self.render();
-	};
-	this.click = function(event) {
-		self.node.dispatchEvent(new CustomEvent('killTodo', {
-			bubbles: true,
-			detail: this.state
-		}));
-	};
-});
-Item.prototype.render = function() {
-	this.attrs.text.innerText = this.state;
-}
+var Todo = {
+	click: function(event) {
+		fire(this, 'killTodo', this.parentElement.dataset.index);
+	},
+	render: function(state) {
+		return h('li', {'data-index': state[1]}, [
+			h('span', {
+				class: 'kill-todo',
+				onclick: Todo.click
+			}, ['X']),
+			h('span', {}, [state[0]])
+		]);
+	}
+};
 
-function makeItemElement() {
-	var li = document.createElement('li');
-	var span = document.createElement('span');
-	span.innerText = 'X';
-	span.classList.add('kill-todo');
-	li.appendChild(span);
-	li.appendChild(document.createElement('span'));
-	return li;
-}
-
-var App = NodeMixin(function(state) {
-	this.state = state;
-	this.attrs = {
-		search: this.node.querySelector('input#search'),
-		list: this.node.querySelector('ul#list'),
-	};
-	var self = this;
-	this.onKeypress = function(event) {
+var App = {
+	keypress: function(event) {
 		if (event.code == 'Enter') {
 			var todo = event.target.value;
 			event.target.value = '';
-			self.state.push(todo);
-			self.render();
+			var root = getRoot(this);
+			root.state.push(todo);
+
+			applyPatch(root, App.render);
 		}
-	};
-	this.killTodo = function(event) {
-		var todo = event.target.parentNode.children[1].innerText;
-		var index = self.state.indexOf(todo);
-		self.state.splice(index, 1);
-		self.render();
-	};
-});
-App.prototype.render = function() {
-	var newVdom = [
-		h('input', {
-			id: 'search',
-			onkeypress: this.onKeypress
-		}, []),
-		h('ul', {id: 'list'}, this.state.map(function(text) {
-				return h('li', {}, [
-					h('span', {
-						class: 'kill-todo',
-						onclick: this.killTodo
-					}, ['X']),
-					h('span', {}, [text])
-				]);
-			}, this)
-		)
-	];
-	patch(this.node, this.vdom || [], newVdom);
-	this.vdom = newVdom;
-	return this;
+	},
+	killTodo: function(event) {
+		var index = event.detail;
+		var root = getRoot(this);
+		root.state.splice(index, 1);
+
+		applyPatch(root, App.render);
+	},
+	render: function(state) {
+		return [
+			h('input', {
+				id: 'search',
+				onkeypress: App.keypress
+			}, []),
+			h('ul', {id: 'list', onkillTodo: App.killTodo},
+				state.map(function(text, index) {
+					return Todo.render(arguments);
+				})
+			)
+		];
+	}
 };
 
 document.addEventListener('DOMContentLoaded', function(event) {
-	window.appComponent = new App(document.querySelector('#app'), []).render();
+	var app = document.querySelector('#app');
+	applyPatch(app, App.render, []);
 });
